@@ -1,6 +1,6 @@
 # GoLiveHost Brain
 
-A comprehensive PHP neural network library inspired by brain.js
+A PHP neural network library
 
 **Developed by:** Go Live Web Solutions ([golive.host](https://golive.host))  
 **Author:** Shubhdeep Singh ([GitHub.com/shubhdeepdev](https://github.com/shubhdeepdev))
