@@ -6,7 +6,13 @@
   "authors": [
     {
       "name": "Shubhdeep Singh",
-      "homepage": "https://github.com/shubhdeepdev"
+      "homepage": "https://github.com/shubhdeepdev",
+      "role": "Developer"
+    },
+    {
+      "name": "Go Live Web Solutions",
+      "homepage": "https://golive.host",
+      "role": "Maintainer"
     }
   ],
   "require": {
