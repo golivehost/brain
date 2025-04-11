@@ -236,8 +236,6 @@ class LSTM
      */
     public function train(array $sequences, array $trainingOptions = []): array
     {
-        // Add memory limit increase at the beginning of the method
-        ini_set('memory_limit', '256M'); // Increase memory limit
         
         $options = array_merge($this->options, $trainingOptions);
         $startTime = microtime(true);
