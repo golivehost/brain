@@ -2,11 +2,6 @@
 /**
  * Gated Recurrent Unit (GRU) implementation for PHP
  * 
- * Developed by  type="code"
-<?php
-/**
- * Gated Recurrent Unit (GRU) implementation for PHP
- * 
  * Developed by: Go Live Web Solutions (golive.host)
  * Author: Shubhdeep Singh (GitHub.com/shubhdeepdev)
  */
