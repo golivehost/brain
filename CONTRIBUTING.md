@@ -113,8 +113,6 @@ Good documentation is crucial for this project. Please follow these guidelines:
 - Document parameters, return values, and exceptions.
 - Keep documentation up-to-date with code changes.
 
-## Issue Reporting
-
 ### Bug Reports
 
 When reporting a bug, please include:
