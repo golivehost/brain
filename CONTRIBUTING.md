@@ -38,7 +38,7 @@ By participating in this project, you agree to maintain a respectful and inclusi
 
 ### Setup
 
-```bash
+\`\`\`bash
 # Clone your fork
 git clone https://github.com/YOUR-USERNAME/golivehost-brain.git
 cd golivehost-brain
@@ -48,7 +48,7 @@ composer install
 
 # Add upstream remote
 git remote add upstream https://github.com/golivehost/brain.git
-```
+\`\`\`
 
 ## Coding Standards
 
@@ -87,13 +87,13 @@ All new features and bug fixes should include tests. This project uses PHPUnit f
 
 ### Running Tests
 
-```bash
+\`\`\`bash
 # Run all tests
 composer run-script test
 
 # Run specific test
 ./vendor/bin/phpunit --filter=TestName
-```
+\`\`\`
 
 ### Writing Tests
 
