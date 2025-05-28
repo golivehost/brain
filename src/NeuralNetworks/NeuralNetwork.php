@@ -29,7 +29,7 @@ class NeuralNetwork
     protected array $errorLog = [];
     protected array $trainStats = [];
     protected bool $isInitialized = false;
-    protected bool $isTraining = false; // Added this property initialization
+    protected bool $isTraining = false;
 
     /**
      * @param array $options Configuration options for the neural network
@@ -382,6 +382,9 @@ class NeuralNetwork
                 
                 $this->biases[$i][$j] += $this->velocities['biases'][$i][$j];
                 
+                // Clip bias to prevent NaN/Inf
+                $this->biases[$i][$j] = $this->clipValue($this->biases[$i][$j]);
+                
                 for ($k = 0; $k < $this->sizes[$i]; $k++) {
                     // Update weight with momentum
                     $this->velocities['weights'][$i][$j][$k] = 
@@ -389,6 +392,9 @@ class NeuralNetwork
                         $learningRate * ($gradients['weights'][$i][$j][$k] / $batchSize);
                     
                     $this->weights[$i][$j][$k] += $this->velocities['weights'][$i][$j][$k];
+                    
+                    // Clip weight to prevent NaN/Inf
+                    $this->weights[$i][$j][$k] = $this->clipValue($this->weights[$i][$j][$k]);
                 }
             }
         }
@@ -413,21 +419,49 @@ class NeuralNetwork
             for ($j = 0; $j < $this->sizes[$i + 1]; $j++) {
                 // Update bias
                 $gradient = $gradients['biases'][$i][$j] / $batchSize;
+                
+                // Clip gradient to prevent NaN/Inf
+                $gradient = $this->clipValue($gradient);
+                
                 $this->mBias[$i][$j] = $beta1 * $this->mBias[$i][$j] + (1 - $beta1) * $gradient;
                 $this->vBias[$i][$j] = $beta2 * $this->vBias[$i][$j] + (1 - $beta2) * pow($gradient, 2);
                 
-                $this->biases[$i][$j] -= $alphat * $this->mBias[$i][$j] / (sqrt($this->vBias[$i][$j]) + $epsilon);
+                $update = $alphat * $this->mBias[$i][$j] / (sqrt($this->vBias[$i][$j]) + $epsilon);
+                $this->biases[$i][$j] -= $update;
+                
+                // Clip bias to prevent NaN/Inf
+                $this->biases[$i][$j] = $this->clipValue($this->biases[$i][$j]);
                 
                 for ($k = 0; $k < $this->sizes[$i]; $k++) {
                     // Update weight
                     $gradient = $gradients['weights'][$i][$j][$k] / $batchSize;
+                    
+                    // Clip gradient to prevent NaN/Inf
+                    $gradient = $this->clipValue($gradient);
+                    
                     $this->m[$i][$j][$k] = $beta1 * $this->m[$i][$j][$k] + (1 - $beta1) * $gradient;
                     $this->v[$i][$j][$k] = $beta2 * $this->v[$i][$j][$k] + (1 - $beta2) * pow($gradient, 2);
                     
-                    $this->weights[$i][$j][$k] -= $alphat * $this->m[$i][$j][$k] / (sqrt($this->v[$i][$j][$k]) + $epsilon);
+                    $update = $alphat * $this->m[$i][$j][$k] / (sqrt($this->v[$i][$j][$k]) + $epsilon);
+                    $this->weights[$i][$j][$k] -= $update;
+                    
+                    // Clip weight to prevent NaN/Inf
+                    $this->weights[$i][$j][$k] = $this->clipValue($this->weights[$i][$j][$k]);
                 }
             }
         }
+    }
+    
+    /**
+     * Clip a value to prevent NaN/Inf
+     */
+    protected function clipValue(float $value, float $min = -1e6, float $max = 1e6): float
+    {
+        if (is_nan($value) || !is_finite($value)) {
+            return 0.0; // Replace NaN/Inf with 0
+        }
+        
+        return max($min, min($max, $value));
     }
 
     /**
@@ -455,7 +489,15 @@ class NeuralNetwork
                     $sum += $this->layers[$i][$k] * $this->weights[$i][$j][$k];
                 }
                 
+                // Clip sum to prevent NaN/Inf
+                $sum = $this->clipValue($sum);
+                
                 $this->layers[$i + 1][$j] = ($this->activation)($sum);
+                
+                // Ensure activation result is valid
+                if (is_nan($this->layers[$i + 1][$j]) || !is_finite($this->layers[$i + 1][$j])) {
+                    $this->layers[$i + 1][$j] = 0.0;
+                }
             }
             
             // Apply dropout to hidden layers
@@ -510,6 +552,10 @@ class NeuralNetwork
             $output = $this->layers[$outputLayer][$i];
             $error = $target[$i] - $output;
             $delta = $error * ($this->activationDerivative)($output);
+            
+            // Clip delta to prevent NaN/Inf
+            $delta = $this->clipValue($delta);
+            
             $deltas[$outputLayer][$i] = $delta;
         }
         
@@ -527,7 +573,14 @@ class NeuralNetwork
                     $error *= $this->dropoutMasks[$l][$i] / (1 - $this->options['dropout']);
                 }
                 
+                // Clip error to prevent NaN/Inf
+                $error = $this->clipValue($error);
+                
                 $delta = $error * ($this->activationDerivative)($this->layers[$l][$i]);
+                
+                // Clip delta to prevent NaN/Inf
+                $delta = $this->clipValue($delta);
+                
                 $deltas[$l][$i] = $delta;
             }
         }
@@ -539,6 +592,9 @@ class NeuralNetwork
                 
                 for ($j = 0; $j < count($this->weights[$l][$i]); $j++) {
                     $weightGradients[$l][$i][$j] = $deltas[$l + 1][$i] * $this->layers[$l][$j];
+                    
+                    // Clip gradient to prevent NaN/Inf
+                    $weightGradients[$l][$i][$j] = $this->clipValue($weightGradients[$l][$i][$j]);
                 }
             }
         }
@@ -635,24 +691,67 @@ class NeuralNetwork
      */
     public function toJSON(): string
     {
+        // Sanitize data to remove Inf/NaN values
+        $sanitizedWeights = $this->sanitizeData($this->weights);
+        $sanitizedBiases = $this->sanitizeData($this->biases);
+        $sanitizedTrainStats = $this->sanitizeData($this->trainStats);
+        
+        // Remove INF from options
+        $sanitizedOptions = $this->options;
+        if (isset($sanitizedOptions['timeout']) && is_infinite($sanitizedOptions['timeout'])) {
+            $sanitizedOptions['timeout'] = 3600; // Replace INF with 1 hour
+        }
+        
         $data = [
             'type' => 'NeuralNetwork',
-            'options' => $this->options,
+            'options' => $sanitizedOptions,
             'sizes' => $this->sizes,
-            'weights' => $this->weights,
-            'biases' => $this->biases,
-            'trainStats' => $this->trainStats
+            'weights' => $sanitizedWeights,
+            'biases' => $sanitizedBiases,
+            'trainStats' => $sanitizedTrainStats
         ];
         
         if ($this->normalizer !== null) {
-            $data['normalizer'] = $this->normalizer->toArray();
+            $data['normalizer'] = $this->sanitizeData($this->normalizer->toArray());
         }
         
         if ($this->dataFormatter !== null) {
-            $data['dataFormatter'] = $this->dataFormatter->toArray();
+            $data['dataFormatter'] = $this->sanitizeData($this->dataFormatter->toArray());
         }
         
-        return json_encode($data);
+        // Encode with error checking
+        $json = json_encode($data);
+        
+        if ($json === false) {
+            throw new BrainException('Failed to encode neural network to JSON: ' . json_last_error_msg());
+        }
+        
+        if (empty($json) || $json === '{}' || $json === '[]') {
+            throw new BrainException('Generated empty JSON for neural network');
+        }
+        
+        return $json;
+    }
+    
+    /**
+     * Sanitize data to remove Inf/NaN values
+     */
+    protected function sanitizeData($data)
+    {
+        if (is_array($data)) {
+            $result = [];
+            foreach ($data as $key => $value) {
+                $result[$key] = $this->sanitizeData($value);
+            }
+            return $result;
+        } elseif (is_float($data) || is_int($data)) {
+            if (is_nan($data) || !is_finite($data)) {
+                return 0.0; // Replace NaN/Inf with 0
+            }
+            return $data;
+        } else {
+            return $data;
+        }
     }
 
     /**
@@ -662,12 +761,20 @@ class NeuralNetwork
     {
         $data = json_decode($json, true);
         
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new BrainException('Invalid JSON format: ' . json_last_error_msg());
+        }
+        
         if (!isset($data['type']) || $data['type'] !== 'NeuralNetwork') {
-            throw new BrainException('Invalid JSON format for NeuralNetwork');
+            throw new BrainException('Invalid JSON format for NeuralNetwork: missing or incorrect type field');
+        }
+        
+        if (!isset($data['options']) || !isset($data['weights']) || !isset($data['biases'])) {
+            throw new BrainException('Invalid JSON format for NeuralNetwork: missing required fields');
         }
         
         $network = new self($data['options']);
-        $network->sizes = $data['sizes'];
+        $network->sizes = $data['sizes'] ?? [];
         $network->weights = $data['weights'];
         $network->biases = $data['biases'];
         $network->trainStats = $data['trainStats'] ?? [];
@@ -689,7 +796,15 @@ class NeuralNetwork
      */
     protected function deepCopy(array $array): array
     {
-        return json_decode(json_encode($array), true);
+        $result = [];
+        foreach ($array as $key => $value) {
+            if (is_array($value)) {
+                $result[$key] = $this->deepCopy($value);
+            } else {
+                $result[$key] = $value;
+            }
+        }
+        return $result;
     }
     
     /**
