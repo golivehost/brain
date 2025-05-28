@@ -5,9 +5,11 @@ A comprehensive PHP neural network library for machine learning and artificial i
 **Developed by:** Go Live Web Solutions ([golive.host](https://golive.host))  
 **Author:** Shubhdeep Singh ([GitHub.com/shubhdeepdev](https://github.com/shubhdeepdev))
 
-<div style="color: red; font-weight: bold; border: 2px solid red; padding: 10px; margin: 15px 0; background-color: #ffeeee;">
-⚠️ IMPORTANT NOTE: The examples provided are for demonstration purposes only and are trained on very limited datasets. The outputs may not be accurate or reliable for real-world applications. For production use, you must train models on larger, representative datasets and thoroughly validate their performance before deployment.
-</div>
+> ⚠️ **IMPORTANT NOTE**  
+> The examples provided are for demonstration purposes only and are trained on very limited datasets.  
+> The outputs may not be accurate or reliable for real-world applications.  
+> **For production use**, you must train models on larger, representative datasets and thoroughly validate their performance before deployment.
+
 
 ## Table of Contents
 
